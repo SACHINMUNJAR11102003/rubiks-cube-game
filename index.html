@@ -7,78 +7,49 @@
 
         /* LOADING SCREEN */
         #loadingScreen {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: black;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            color: white;
-            font-size: 22px;
-            z-index: 9999;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; color: white; font-size: 22px; z-index: 9999;
         }
         .loader {
-            border: 8px solid #333;
-            border-top: 8px solid #00ffea;
-            border-radius: 50%;
-            width: 70px;
-            height: 70px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
+            border: 8px solid #333; border-top: 8px solid #00ffea;
+            border-radius: 50%; width: 70px; height: 70px;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
         }
-        @keyframes spin {
-            0% { transform: rotate(0); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
 
         /* PLAY BUTTON OVERLAY */
         #playOverlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: none;
+            align-items: center; justify-content: center; flex-direction: column;
             z-index: 9998;
         }
         #playBtn {
-            padding: 15px 40px;
-            background: #00ffea;
-            color: black;
-            border: none;
-            border-radius: 10px;
-            font-size: 26px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
+            padding: 15px 40px; background: #00ffea; color: black;
+            border: none; border-radius: 10px; font-size: 26px; font-weight: bold;
+            cursor: pointer; transition: 0.3s;
         }
-        #playBtn:hover {
-            background: #00b8a3;
-        }
+        #playBtn:hover { background: #00b8a3; }
 
         /* GAME INFO UI PANEL */
         #infoPanel {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.6);
-            padding: 15px 20px;
-            border-radius: 12px;
-            color: white;
-            font-size: 18px;
-            backdrop-filter: blur(5px);
-            border: 1px solid #00ffea;
-            box-shadow: 0 0 15px #00ffea;
-            opacity: 0;
-            transition: opacity 1s;
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(0,0,0,0.6); padding: 15px 20px; border-radius: 12px;
+            color: white; font-size: 18px; backdrop-filter: blur(5px);
+            border: 1px solid #00ffea; box-shadow: 0 0 15px #00ffea;
+            opacity: 0; transition: opacity 1s;
         }
-        #infoPanel.visible {
-            opacity: 1;
+        #infoPanel.visible { opacity: 1; }
+
+        /* BUTTONS PANEL */
+        #controls {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.6); padding: 15px 20px; border-radius: 12px;
+            color: white; font-size: 16px; backdrop-filter: blur(5px);
+            border: 1px solid #00ffea; box-shadow: 0 0 15px #00ffea;
         }
+        #controls button { margin: 3px; padding: 5px 10px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -101,12 +72,30 @@
     <div id="required">Required moves:</div>
 </div>
 
+<!-- CONTROLS -->
+<div id="controls">
+    <h3>Rotate Cube Faces</h3>
+    <button onclick="rotateCubeFace('U','CW')">U ⟳</button>
+    <button onclick="rotateCubeFace('U','CCW')">U ⟲</button>
+    <button onclick="rotateCubeFace('D','CW')">D ⟳</button>
+    <button onclick="rotateCubeFace('D','CCW')">D ⟲</button>
+    <button onclick="rotateCubeFace('L','CW')">L ⟳</button>
+    <button onclick="rotateCubeFace('L','CCW')">L ⟲</button>
+    <button onclick="rotateCubeFace('R','CW')">R ⟳</button>
+    <button onclick="rotateCubeFace('R','CCW')">R ⟲</button>
+    <button onclick="rotateCubeFace('F','CW')">F ⟳</button>
+    <button onclick="rotateCubeFace('F','CCW')">F ⟲</button>
+    <button onclick="rotateCubeFace('B','CW')">B ⟳</button>
+    <button onclick="rotateCubeFace('B','CCW')">B ⟲</button>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
 let scene, camera, renderer, cubeGroup;
 let currentState = null;
 
+// Helper: map color chars to hex
 function colorToHex(c){
     if (c.includes("w")) return 0xffffff;
     if (c.includes("y")) return 0xffff00;
@@ -117,6 +106,7 @@ function colorToHex(c){
     return 0x000000;
 }
 
+// ------------------- Load New Game -------------------
 async function loadNewGame() {
     const r = await fetch("/new_game");
     const data = await r.json();
@@ -129,126 +119,114 @@ async function loadNewGame() {
     buildCube();
 }
 
+// ------------------- Build Cube -------------------
 function buildCube() {
     if (cubeGroup) scene.remove(cubeGroup);
-
     cubeGroup = new THREE.Group();
 
-    const stickerSize = 0.98;
+    const cubieSize = 0.95;
+    const gap = 0.05;
+    const stickerSize = 0.9;
+    const positions = [-1, 0, 1];
 
-    let faceOrder = ["U", "R", "F", "D", "L", "B"];
-    let faceRotation = {
-        "U": [0, Math.PI, 0],
-        "D": [0, 0, Math.PI],
-        "F": [0, 0, 0],
-        "B": [0, Math.PI, 0],
-        "R": [0, -Math.PI/2, 0],
-        "L": [0, Math.PI/2, 0]
-    };
+    for (let x of positions) {
+        for (let y of positions) {
+            for (let z of positions) {
+                let cubie = new THREE.Group();
 
-    let facePosition = {
-        "U": [0, 1.5, 0],
-        "D": [0, -1.5, 0],
-        "F": [0, 0, 1.5],
-        "B": [0, 0, -1.5],
-        "R": [1.5, 0, 0],
-        "L": [-1.5, 0, 0]
-    };
+                // main cubie cube
+                let geom = new THREE.BoxGeometry(cubieSize, cubieSize, cubieSize);
+                let materials = [];
+                for (let f=0; f<6; f++) materials.push(new THREE.MeshBasicMaterial({color:0x000000}));
+                let cubeMesh = new THREE.Mesh(geom, materials);
+                cubie.add(cubeMesh);
 
-    for (let face of faceOrder) {
-        let stickers = currentState[face];
+                // add stickers on outer faces based on currentState
+                const faces = ["U","D","F","B","R","L"];
+                const dirs = [[0,1,0],[0,-1,0],[0,0,1],[0,0,-1],[1,0,0],[-1,0,0]];
+                for (let f=0; f<6; f++){
+                    let face = faces[f];
+                    let dir = dirs[f];
 
-        for (let i = 0; i < 9; i++) {
-            let y = 1 - Math.floor(i / 3);
-            let x = (i % 3) - 1;
+                    if ((dir[0] && x!==dir[0]) || (dir[1] && y!==dir[1]) || (dir[2] && z!==dir[2])) continue;
 
-            let geometry = new THREE.PlaneGeometry(stickerSize, stickerSize);
-            let material = new THREE.MeshBasicMaterial({
-                color: colorToHex(stickers[i]),
-                side: THREE.DoubleSide
-            });
-            let square = new THREE.Mesh(geometry, material);
+                    let idx;
+                    if(face==="U") idx = (1-z)*3 + (x+1);
+                    if(face==="D") idx = (z+1)*3 + (x+1);
+                    if(face==="F") idx = (1-y)*3 + (x+1);
+                    if(face==="B") idx = (1-y)*3 + (1-x);
+                    if(face==="R") idx = (1-y)*3 + (1-z);
+                    if(face==="L") idx = (1-y)*3 + (z+1);
 
-            square.position.set(x, y, 0);
+                    let stickerColor = colorToHex(currentState[face][idx]);
 
-            let wrapper = new THREE.Group();
-            wrapper.add(square);
+                    let stickerGeom = new THREE.PlaneGeometry(stickerSize, stickerSize);
+                    let stickerMat = new THREE.MeshBasicMaterial({color: stickerColor, side: THREE.DoubleSide});
+                    let sticker = new THREE.Mesh(stickerGeom, stickerMat);
 
-            wrapper.position.set(
-                facePosition[face][0],
-                facePosition[face][1],
-                facePosition[face][2]
-            );
+                    sticker.position.set(dir[0]*0.5, dir[1]*0.5, dir[2]*0.5);
+                    if (dir[0]!==0) sticker.rotation.y = Math.PI/2;
+                    if (dir[1]!==0) sticker.rotation.x = -Math.PI/2;
+                    if (dir[2]!==0) sticker.rotation.y = 0;
 
-            wrapper.rotation.set(
-                faceRotation[face][0],
-                faceRotation[face][1],
-                faceRotation[face][2]
-            );
+                    cubie.add(sticker);
+                }
 
-            cubeGroup.add(wrapper);
+                cubie.position.set(x*(cubieSize+gap), y*(cubieSize+gap), z*(cubieSize+gap));
+                cubeGroup.add(cubie);
+            }
         }
     }
 
     scene.add(cubeGroup);
 }
 
-function init3D() {
+// ------------------- Init 3D -------------------
+function init3D(){
     scene = new THREE.Scene();
-
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(6, 6, 6);
-    camera.lookAt(0, 0, 0);
-
-    renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(6,6,6); camera.lookAt(0,0,0);
+    renderer = new THREE.WebGLRenderer(); renderer.setSize(window.innerWidth,window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    let light = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(light);
-
-    let isDragging = false;
-    let prevX, prevY;
-
-    renderer.domElement.addEventListener("mousedown", e => {
-        isDragging = true;
-        prevX = e.clientX;
-        prevY = e.clientY;
-    });
-
-    renderer.domElement.addEventListener("mousemove", e => {
+    let isDragging=false, prevX, prevY;
+    renderer.domElement.addEventListener("mousedown", e=>{isDragging=true; prevX=e.clientX; prevY=e.clientY;});
+    renderer.domElement.addEventListener("mousemove", e=>{
         if (!isDragging) return;
-        let dx = e.clientX - prevX;
-        let dy = e.clientY - prevY;
-        cubeGroup.rotation.y += dx * 0.01;
-        cubeGroup.rotation.x += dy * 0.01;
-        prevX = e.clientX;
-        prevY = e.clientY;
+        let dx=e.clientX-prevX, dy=e.clientY-prevY;
+        cubeGroup.rotation.y += dx*0.01; cubeGroup.rotation.x += dy*0.01;
+        prevX=e.clientX; prevY=e.clientY;
     });
+    window.addEventListener("mouseup", ()=>isDragging=false);
 
-    window.addEventListener("mouseup", () => isDragging = false);
-
-    requestAnimationFrame(function animate() {
+    requestAnimationFrame(function animate(){
         renderer.render(scene, camera);
         requestAnimationFrame(animate);
     });
 }
 
-/* START BUTTON */
-document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
-        document.getElementById("loadingScreen").style.display = "none";
-        document.getElementById("playOverlay").style.display = "flex";
-    }, 1200);
+// ------------------- Rotate Cube Face (Button Handler) -------------------
+function rotateCubeFace(face, direction){
+    // placeholder: simple rotation of whole cube
+    let angle = (direction==='CW') ? Math.PI/2 : -Math.PI/2;
+    if(face==='U' || face==='D') cubeGroup.rotation.x += angle;
+    if(face==='L' || face==='R') cubeGroup.rotation.y += angle;
+    if(face==='F' || face==='B') cubeGroup.rotation.z += angle;
+}
+
+// ------------------- Start Button -------------------
+document.addEventListener("DOMContentLoaded",()=>{
+    setTimeout(()=>{
+        document.getElementById("loadingScreen").style.display="none";
+        document.getElementById("playOverlay").style.display="flex";
+    },1200);
 });
 
-document.getElementById("playBtn").onclick = () => {
-    document.getElementById("playOverlay").style.display = "none";
+document.getElementById("playBtn").onclick=()=>{
+    document.getElementById("playOverlay").style.display="none";
     document.getElementById("infoPanel").classList.add("visible");
-    init3D();
-    loadNewGame();
+    init3D(); loadNewGame();
 };
 </script>
-
 </body>
 </html>
