@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rubik's Cube Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: Arial; }
+
+        /* LOADING SCREEN */
+        #loadingScreen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            font-size: 22px;
+            z-index: 9999;
+        }
+        .loader {
+            border: 8px solid #333;
+            border-top: 8px solid #00ffea;
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* PLAY BUTTON OVERLAY */
+        #playOverlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 9998;
+        }
+        #playBtn {
+            padding: 15px 40px;
+            background: #00ffea;
+            color: black;
+            border: none;
+            border-radius: 10px;
+            font-size: 26px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        #playBtn:hover {
+            background: #00b8a3;
+        }
+
+        /* GAME INFO UI PANEL */
+        #infoPanel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.6);
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #00ffea;
+            box-shadow: 0 0 15px #00ffea;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+        #infoPanel.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+    <div class="loader"></div>
+    Loading Game...
+</div>
+
+<!-- PLAY BUTTON SCREEN -->
+<div id="playOverlay">
+    <button id="playBtn">PLAY</button>
+</div>
+
+<!-- INFO PANEL -->
+<div id="infoPanel">
+    <div id="level">Level:</div>
+    <div id="scramble">Scramble:</div>
+    <div id="required">Required moves:</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+let scene, camera, renderer, cubeGroup;
+let currentState = null;
+
+function colorToHex(c){
+    if (c.includes("w")) return 0xffffff;
+    if (c.includes("y")) return 0xffff00;
+    if (c.includes("r")) return 0xff0000;
+    if (c.includes("o")) return 0xffa500;
+    if (c.includes("b")) return 0x0000ff;
+    if (c.includes("g")) return 0x00ff00;
+    return 0x000000;
+}
+
+async function loadNewGame() {
+    const r = await fetch("/new_game");
+    const data = await r.json();
+
+    document.getElementById("level").innerText = "Level: " + data.level;
+    document.getElementById("scramble").innerText = "Scramble: " + data.scramble;
+    document.getElementById("required").innerText = "Required moves: " + data.required_moves;
+
+    currentState = data.state;
+    buildCube();
+}
+
+function buildCube() {
+    if (cubeGroup) scene.remove(cubeGroup);
+
+    cubeGroup = new THREE.Group();
+
+    const stickerSize = 0.98;
+
+    let faceOrder = ["U", "R", "F", "D", "L", "B"];
+    let faceRotation = {
+        "U": [0, Math.PI, 0],
+        "D": [0, 0, Math.PI],
+        "F": [0, 0, 0],
+        "B": [0, Math.PI, 0],
+        "R": [0, -Math.PI/2, 0],
+        "L": [0, Math.PI/2, 0]
+    };
+
+    let facePosition = {
+        "U": [0, 1.5, 0],
+        "D": [0, -1.5, 0],
+        "F": [0, 0, 1.5],
+        "B": [0, 0, -1.5],
+        "R": [1.5, 0, 0],
+        "L": [-1.5, 0, 0]
+    };
+
+    for (let face of faceOrder) {
+        let stickers = currentState[face];
+
+        for (let i = 0; i < 9; i++) {
+            let y = 1 - Math.floor(i / 3);
+            let x = (i % 3) - 1;
+
+            let geometry = new THREE.PlaneGeometry(stickerSize, stickerSize);
+            let material = new THREE.MeshBasicMaterial({
+                color: colorToHex(stickers[i]),
+                side: THREE.DoubleSide
+            });
+            let square = new THREE.Mesh(geometry, material);
+
+            square.position.set(x, y, 0);
+
+            let wrapper = new THREE.Group();
+            wrapper.add(square);
+
+            wrapper.position.set(
+                facePosition[face][0],
+                facePosition[face][1],
+                facePosition[face][2]
+            );
+
+            wrapper.rotation.set(
+                faceRotation[face][0],
+                faceRotation[face][1],
+                faceRotation[face][2]
+            );
+
+            cubeGroup.add(wrapper);
+        }
+    }
+
+    scene.add(cubeGroup);
+}
+
+function init3D() {
+    scene = new THREE.Scene();
+
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(6, 6, 6);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    let light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
+
+    let isDragging = false;
+    let prevX, prevY;
+
+    renderer.domElement.addEventListener("mousedown", e => {
+        isDragging = true;
+        prevX = e.clientX;
+        prevY = e.clientY;
+    });
+
+    renderer.domElement.addEventListener("mousemove", e => {
+        if (!isDragging) return;
+        let dx = e.clientX - prevX;
+        let dy = e.clientY - prevY;
+        cubeGroup.rotation.y += dx * 0.01;
+        cubeGroup.rotation.x += dy * 0.01;
+        prevX = e.clientX;
+        prevY = e.clientY;
+    });
+
+    window.addEventListener("mouseup", () => isDragging = false);
+
+    requestAnimationFrame(function animate() {
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    });
+}
+
+/* START BUTTON */
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+        document.getElementById("loadingScreen").style.display = "none";
+        document.getElementById("playOverlay").style.display = "flex";
+    }, 1200);
+});
+
+document.getElementById("playBtn").onclick = () => {
+    document.getElementById("playOverlay").style.display = "none";
+    document.getElementById("infoPanel").classList.add("visible");
+    init3D();
+    loadNewGame();
+};
+</script>
+
+</body>
+</html>
