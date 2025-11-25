@@ -96,6 +96,17 @@ function buildCube() {
     scene.add(cubeGroup);
 }
 
+// Reuse existing rotation logic
+function rotateCubeFace(face, direction) {
+    // Call the existing rotation function you already use for mouse drag
+    // For example, if your mouse logic uses rotateFace(face, CW/CCW)
+    rotateFace(face, direction);
+
+    // If you need to redraw/update the cube:
+    drawCube();  // or whatever function updates the UI
+}
+
+
 // 3D initialization
 function init3D() {
     scene = new THREE.Scene();
